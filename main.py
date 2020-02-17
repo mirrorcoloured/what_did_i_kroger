@@ -80,6 +80,7 @@ with open('orders_items.csv', 'w') as f:
 def qualify(string, qualifier='"'):
     if not (string[0] == qualifier and string[-1] == qualifier):
         return f"{qualifier}{string}{qualifier}"
+    return string
 
 def remove_brackets(s):
     while s.find("<") > -1 and s.find(">") > -1:
