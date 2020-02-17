@@ -69,13 +69,17 @@ for link in purchase_links:
 
 with open('orders.csv', 'w') as f:
     for order in orders:
-        line = ",".join([f'"{o}"' for o in order])
+        line = ",".join([qualify(o, '"') for o in order])
         f.write(f'{line}\n')
 
 with open('orders_items.csv', 'w') as f:
     for item in order_items:
-        line = ",".join([f'"{i}"' for i in item])
+        line = ",".join([qualify(o, '"') for i in item])
         f.write(f'{line}\n')
+
+def qualify(string, qualifier='"'):
+    if not (string[0] == qualifier and string[-1] == qualifier):
+        return f"{qualifier}{string}{qualifier}"
 
 def remove_brackets(s):
     while s.find("<") > -1 and s.find(">") > -1:
