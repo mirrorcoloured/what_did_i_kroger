@@ -1,0 +1,9 @@
+{
+    "black-formatter.args": [
+        "--line-length=160",
+    ],
+    "flake8.args": [
+        "--max-line-length=160",
+        "--ignore=E203"
+    ],
+}
