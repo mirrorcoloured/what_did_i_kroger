@@ -11,6 +11,8 @@ import lxml.html
 import pandas as pd
 import zendriver as zd
 
+from credentials import userpass
+
 # %%
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -32,13 +34,38 @@ async def login():
     browser = await zd.start()
     page = await browser.get(login_url)
 
+    time.sleep(10 + random.randint(0, 5))
+
     # sign in
-    ...
+    username, password = userpass()
+    email_input = await page.xpath("//input[@id='signInName']")
+    email_input = email_input[0]
+    await email_input.send_keys(username)
+
+    time.sleep(random.random() * 2 + 1)
+
+    password_input = await page.xpath("//input[@id='password']")
+    password_input = password_input[0]
+    await password_input.send_keys(password)
+
+    time.sleep(random.random() * 2 + 1)
+
+    remember_checkbox = await page.xpath("//input[@id='kr_remember_me_adi_true']")
+    remember_checkbox = remember_checkbox[0]
+    await remember_checkbox.click()
+
+    time.sleep(random.random() * 2 + 1)
+
+    sign_in_button = await page.xpath("//button[@id='continue']")
+    sign_in_button = sign_in_button[0]
+    await sign_in_button.click()
+
+    time.sleep(10 + random.randint(0, 5))
 
     return browser
 
 
-async def get_order_links(browser, seen_order_links=[]):
+async def get_order_links(browser, past_order_links=[]):
     print("Checking for order page count")
     page = await browser.get(orders_url)
     time.sleep(10)
@@ -46,25 +73,27 @@ async def get_order_links(browser, seen_order_links=[]):
     last_page = int(results[-1].text)
     print(f"Found {last_page} pages of orders")
 
-    all_order_links = []
+    new_order_links = []
     for page_number in range(1, last_page + 1):
         print(f"Pulling order numbers from page {page_number}")
         page = await browser.get(f"{ROOT_URL}/mypurchases?tab=purchases&page={page_number}")
-        # wait for js to load content
-        time.sleep(15 + random.randint(0, 10))
+
+        sleep_time = 15 + random.randint(0, 10)
+        print(f"Sleeping for {sleep_time} seconds to allow JS to load")
+        time.sleep(sleep_time)
 
         links = await page.xpath("//a")
-        detail_links = [link for link in links if "mypurchases/detail" in (link.href if link.href else "")]
-        order_links = [link.href for link in detail_links]
+        detail_links = [link for link in links if "mypurchases/detail" in (link.get("href") if link.get("href") else "")]
+        order_links = [link.get("href") for link in detail_links]
 
         for link in order_links:
-            if link not in seen_order_links:
-                order_links.append(link)
+            if link not in past_order_links:
+                new_order_links.append(link)
             else:
-                print("Found an order I've already seen, skipping")
-                break
+                print("Found an order I've already seen, done!")
+                return new_order_links
 
-    return all_order_links
+    return new_order_links
 
 
 def text_parts(e):
@@ -183,13 +212,16 @@ async def main():
 
     new_order_links = await get_order_links(browser, past_order_links)
 
+    if len(new_order_links) == 0:
+        print("No new orders found, exiting")
+        await browser.stop()
+        return
+
     # update which orders I've seen
     print("Saving order links to file")
-    for link in past_order_links:
-        if link not in new_order_links:
-            new_order_links.append(link)
+    all_order_links = past_order_links + new_order_links
     with open("data/order_links.json", "w") as f:
-        json.dump(new_order_links, f, indent=2)
+        json.dump(all_order_links, f, indent=2)
 
     all_order_details = []
     all_item_details = []
@@ -202,10 +234,12 @@ async def main():
     item_df = pd.DataFrame(all_item_details)
 
     date_range = f"{order_df.date.min()}_{order_df.date.max()}"
-    order_df.to_csv(f"{date_range}_orders.csv", index=False)
-    item_df.to_csv(f"{date_range}_items.csv", index=False)
+    order_df.to_csv(f"data/{date_range}_orders.csv", index=False)
+    item_df.to_csv(f"data/{date_range}_items.csv", index=False)
 
     await browser.stop()
 
 
+if __name__ == "__main__":
+    asyncio.run(main())
 # %%
