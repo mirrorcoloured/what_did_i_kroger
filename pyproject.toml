@@ -1,0 +1,16 @@
+[project]
+name = "what-did-i-kroger"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.3.0",
+    "ipython>=9.15.0",
+    "lxml>=6.1.1",
+    "nbformat>=5.10.4",
+    "ollama>=0.6.2",
+    "pandas>=3.0.3",
+    "plotly>=6.8.0",
+    "pydantic>=2.13.4",
+    "scikit-learn>=1.9.0",
+    "zendriver>=0.15.4",
+]
